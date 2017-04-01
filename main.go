@@ -7,7 +7,8 @@ import (
 	"strings"
 	"github.com/pepelazz/go-bot-user-session"
 	"time"
-	"github.com/pepelazz/eduBot_1.0/_libs/telebot"
+	"github.com/pepelazz/go-bot-telebot"
+	"github.com/tarantool/go-tarantool"
 )
 
 
@@ -25,11 +26,16 @@ func init()  {
 }
 
 type Config struct {
+	TrntlConn *tarantool.Connection
 	FlickerKey string
 }
 
-func Init(cnf *Config) {
+func Init(cnf *Config) (err error) {
 	config = cnf
+	if cnf.TrntlConn == nil {
+		err = errors.New("eduBotMethods.Init missed TrntlConn")
+	}
+	return
 }
 
 type method func(int, []string) (interface{}, error)

@@ -3,8 +3,8 @@ package eduBotMethods
 import (
 	"fmt"
 	"github.com/pkg/errors"
-	"github.com/pepelazz/BotTarantool_0.1/src/common"
 	"strings"
+	"github.com/tidwall/gjson"
 )
 
 func callLua(userId int, args []string) (result interface{}, err error) {
@@ -16,7 +16,7 @@ func callLua(userId int, args []string) (result interface{}, err error) {
 
 	funcName := args[0]
 
-	_, err = common.Trntl.CallDbFunction(funcName, []interface{}{userId, args[1:]})
+	_, err = callDbFunction(funcName, []interface{}{userId, args[1:]})
 	if err != nil {
 		if strings.Contains(fmt.Sprintf("%s", err), fmt.Sprintf("Procedure '%s' is not defined", funcName)) {
 			err = fmt.Errorf("Функция '%s' не найдена в lua.", funcName)
@@ -29,5 +29,31 @@ func callLua(userId int, args []string) (result interface{}, err error) {
 
 	return
 }
+
+func callDbFunction(functionName string, args []interface{}) (result []byte, err error) {
+
+	resp, err := config.TrntlConn.Call17(functionName, args)
+	if err != nil {
+		err = fmt.Errorf("call '%s': %s", functionName, err)
+	}
+
+	if len(resp.Data) == 0 {
+		result = []byte{}
+		return
+	}
+
+	queryRes := resp.Data[0].(string)
+
+	//fmt.Printf("rsp %s\n", resp)
+	code := gjson.Get(queryRes, "ok")
+	if !code.Bool() {
+		msg := gjson.Get(queryRes, "message").Str
+		err = fmt.Errorf(msg)
+	}
+	result = []byte(gjson.Get(queryRes, "result").Raw)
+
+	return
+}
+
 
 
