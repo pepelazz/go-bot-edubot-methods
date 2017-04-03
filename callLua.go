@@ -15,8 +15,34 @@ func callLua(userId int, args []string) (result interface{}, err error) {
 	}
 
 	funcName := args[0]
+	// два ввозможных варианта передачи параметров
+	// 1) map, если в строке, которую парсим есть = и он разбирается на параметры. Тогад передаем мар
+	// 2) параметры списком. В случае если не map
+	isMap := false
+	params := map[string]interface{}{}
+	for _, v := range args {
+		if strings.Contains(v, "=") {
+			isMap = true
+		}
+	}
+	if isMap {
+		for _, v := range args {
+			if strings.Contains(v, "=") {
+				arr := strings.Split(v, "=")
+				if len(arr) == 2 {
+					params[arr[0]] = arr[1]
+				}
+			}
+		}
+	}
+	// два варианта вызова lua функции в зависимости от типа параметров
+	if len(params) > 0 {
+		_, err = callDbFunction(funcName, []interface{}{userId, params})
+	} else {
+		_, err = callDbFunction(funcName, []interface{}{userId, args[1:]})
+	}
 
-	_, err = callDbFunction(funcName, []interface{}{userId, args[1:]})
+
 	if err != nil {
 		if strings.Contains(fmt.Sprintf("%s", err), fmt.Sprintf("Procedure '%s' is not defined", funcName)) {
 			err = fmt.Errorf("Функция '%s' не найдена в lua.", funcName)
