@@ -60,7 +60,12 @@ func callDbFunction(functionName string, args []interface{}) (result []byte, err
 
 	resp, err := config.TrntlConn.Call17(functionName, args)
 	if err != nil {
-		err = fmt.Errorf("call '%s': %s", functionName, err)
+		err = fmt.Errorf("Ошибка: call '%s': %s", functionName, err)
+		return
+	}
+
+	if resp == nil {
+		err = fmt.Errorf("Ошибка: call '%s'. resp is nil", functionName)
 	}
 
 	if len(resp.Data) == 0 {
