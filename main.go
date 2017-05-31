@@ -9,15 +9,15 @@ import (
 	"time"
 	"github.com/pepelazz/go-bot-telebot"
 	"github.com/tarantool/go-tarantool"
+	"github.com/aichaos/rivescript-go"
 )
-
 
 var (
 	methodMap map[string]method
 	config *Config
 )
 
-func init()  {
+func init() {
 	methodMap = map[string]method{}
 	Add("flickerPhoto", flickerPhoto)
 	Add("getPhoto", getPhoto)
@@ -26,7 +26,7 @@ func init()  {
 }
 
 type Config struct {
-	TrntlConn *tarantool.Connection
+	TrntlConn  *tarantool.Connection
 	FlickerKey string
 }
 
@@ -43,14 +43,18 @@ type method func(int, []string) (interface{}, error)
 type PhotoUrlWithCapture struct {
 	Url     string
 	Capture string
+	RiveVarName  string
+	RiveVarValue string
 }
 
 type StickerWithText struct {
-	FileId string
-	Text   string
+	FileId       string
+	Text         string
+	RiveVarName  string
+	RiveVarValue string
 }
 
-func CheckIsEduBotMethod(s *userSession.S)  {
+func CheckIsEduBotMethod(s *userSession.S, riveBot *rivescript.RiveScript) {
 	res, err := execute(s)
 	if err != nil {
 		s.SetAnswerMsg(fmt.Sprintf("Ошибка: %s", err))
@@ -60,17 +64,32 @@ func CheckIsEduBotMethod(s *userSession.S)  {
 		switch v := res.(type) {
 		case PhotoUrlWithCapture:
 			s.SetAnswerMsgWithPhoto(v.Capture, "", v.Url)
+			if len(v.RiveVarName) > 0 && len(v.RiveVarValue) > 0 {
+				riveBot.SetUservar(s.Id, v.RiveVarName, v.RiveVarValue) // смена переменной/топика в rivescript
+			}
 			break
 		case StickerWithText:
 			s.SetAnswerWithSticker(v.FileId)
 			go sendMsgWithDelay(s, v.Text, 1) // текст сообщения отправляем вслед за стикером
+			if len(v.RiveVarName) > 0 && len(v.RiveVarValue) > 0 {
+				riveBot.SetUservar(s.Id, v.RiveVarName, v.RiveVarValue) // смена переменной/топика в rivescript
+			}
 			break
 		case string:
+			// в случае вызова lua функции (callLua) возвращается строка "nil", что означает что ответ отправлять не надо. Ответ бедут отправлен через вызов метода jsonRpc
 			s.SetAnswerMsg(res.(string))
 			break
 		default:
 			s.SetAnswerMsg(fmt.Sprintf("Error: unknown type for interface assertion: %s", res))
 		}
+	}
+	resStr, err := checkIsEduBotMacros(s)
+	if err != nil {
+		s.SetAnswerMsg(fmt.Sprintf("Ошибка: %s", err))
+		return
+	}
+	if len(resStr)>0 {
+		s.SetAnswerMsg(resStr)
 	}
 }
 
@@ -100,7 +119,6 @@ func execute(s *userSession.S) (res interface{}, err error) {
 func Add(funcName string, f method) {
 	methodMap[funcName] = f
 }
-
 
 func sendMsgWithDelay(s *userSession.S, text string, delay time.Duration) {
 	time.Sleep(delay * time.Second)

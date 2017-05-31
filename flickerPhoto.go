@@ -19,11 +19,15 @@ func flickerPhoto(userId int, args []string) (interface{}, error) {
 	if err != nil {
 		return "", err
 	}
-	var captureMsg string
+	var captureMsg, riveVarName, riveVarValue string
 	if len(args) > 1 {
 		captureMsg = args[1]
 	}
-	return PhotoUrlWithCapture{url, captureMsg}, nil
+	if len(args)>3 {
+		riveVarName = args[2]
+		riveVarValue = args[3]
+	}
+	return PhotoUrlWithCapture{url, captureMsg, riveVarName, riveVarValue}, nil
 }
 
 func flickrGetPhoto(tag string) (url string, err error) {

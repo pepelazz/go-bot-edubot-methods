@@ -5,6 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"strings"
 	"github.com/tidwall/gjson"
+	"encoding/json"
 )
 
 func callLua(userId int, args []string) (result interface{}, err error) {
@@ -15,25 +16,32 @@ func callLua(userId int, args []string) (result interface{}, err error) {
 	}
 
 	funcName := args[0]
-	// два ввозможных варианта передачи параметров
-	// 1) map, если в строке, которую парсим есть = и он разбирается на параметры. Тогад передаем мар
+	// два возможных варианта передачи параметров
+	// 1) map, если в строке, которую парсим есть = и он разбирается на параметры. Тогда передаем мар
 	// 2) параметры списком. В случае если не map
 	isMap := false
 	params := map[string]interface{}{}
 	for _, v := range args {
-		if strings.Contains(v, "=") {
+		//if strings.Contains(v, "=") {
+		if strings.Contains(v, ":") {
 			isMap = true
 		}
 	}
 	if isMap {
-		for _, v := range args {
-			if strings.Contains(v, "=") {
-				arr := strings.Split(v, "=")
-				if len(arr) == 2 {
-					params[arr[0]] = arr[1]
-				}
-			}
+		err = json.Unmarshal([]byte(strings.Join(args[1:], ",")), &params)
+		if err != nil {
+			err = errors.New(fmt.Sprintf("неверный json формат : %s\n проверьте правильность заполнения параметров:\n %s", err, strings.Join(args[1:], ",")))
+			return
 		}
+		// TODO: удалить после 20/06/2017
+		//for _, v := range args {
+		//	if strings.Contains(v, "=") {
+		//		arr := strings.Split(v, "=")
+		//		if len(arr) == 2 {
+		//			params[arr[0]] = arr[1]
+		//		}
+		//	}
+		//}
 	}
 	// два варианта вызова lua функции в зависимости от типа параметров
 	if len(params) > 0 {
