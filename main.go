@@ -10,11 +10,14 @@ import (
 	"github.com/pepelazz/go-bot-telebot"
 	"github.com/tarantool/go-tarantool"
 	"github.com/aichaos/rivescript-go"
+	"database/sql"
+	"os"
 )
 
 var (
 	methodMap map[string]method
 	config *Config
+	Pg *sql.DB
 )
 
 func init() {
@@ -22,6 +25,7 @@ func init() {
 	Add("flickerPhoto", flickerPhoto)
 	Add("getPhoto", getPhoto)
 	Add("getSticker", getSticker)
+	Add("getLearningMap", getLearningMap)
 	Add("callLua", callLua)
 }
 
@@ -41,8 +45,8 @@ func Init(cnf *Config) (err error) {
 type method func(int, []string) (interface{}, error)
 
 type PhotoUrlWithCapture struct {
-	Url     string
-	Capture string
+	Url          string
+	Capture      string
 	RiveVarName  string
 	RiveVarValue string
 }
@@ -54,7 +58,12 @@ type StickerWithText struct {
 	RiveVarValue string
 }
 
-func CheckIsEduBotMethod(s *userSession.S, riveBot *rivescript.RiveScript) {
+type LearningMapFile struct {
+	Path string
+}
+
+func CheckIsEduBotMethod(s *userSession.S, riveBot *rivescript.RiveScript, pg *sql.DB) {
+	Pg = pg // ссылка на коннект к postgres
 	res, err := execute(s)
 	if err != nil {
 		s.SetAnswerMsg(fmt.Sprintf("Ошибка: %s", err))
@@ -75,6 +84,10 @@ func CheckIsEduBotMethod(s *userSession.S, riveBot *rivescript.RiveScript) {
 				riveBot.SetUservar(s.Id, v.RiveVarName, v.RiveVarValue) // смена переменной/топика в rivescript
 			}
 			break
+		case LearningMapFile:
+			s.SetAnswerWithDocument(v.Path).SetAnswerMsg("a")
+			go deleteFileDelay(v.Path)
+			break
 		case string:
 			// в случае вызова lua функции (callLua) возвращается строка "nil", что означает что ответ отправлять не надо. Ответ бедут отправлен через вызов метода jsonRpc
 			s.SetAnswerMsg(res.(string))
@@ -88,7 +101,7 @@ func CheckIsEduBotMethod(s *userSession.S, riveBot *rivescript.RiveScript) {
 		s.SetAnswerMsg(fmt.Sprintf("Ошибка: %s", err))
 		return
 	}
-	if len(resStr)>0 {
+	if len(resStr) > 0 {
 		s.SetAnswerMsg(resStr)
 	}
 }
@@ -131,4 +144,9 @@ func sendMsgWithDelay(s *userSession.S, text string, delay time.Duration) {
 			_, err = s.SetAnswerMsg(text).SendMsg()
 		}
 	}
+}
+
+func deleteFileDelay(path string) {
+	time.Sleep(10 * time.Second)
+	os.Remove(path)
 }
