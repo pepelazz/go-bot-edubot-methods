@@ -18,21 +18,25 @@ func getLearningMap(userId int, args []string) (res interface{}, err error) {
 	}
 
 	result := struct {
-		Tasks struct {
-			     Title string `json:"title"`
-			     Tasks []struct {
-				     Score      float64 `json:"score"`
-				     Topic      string `json:"topic"`
-				     Rivescript string `json:"rivescript"`
-				     Progress   float64 `json:"progress"`
-				     State      string `json:"state"`
-			     } `json:"tasks"`
-		     }`json:"tasks"`
-		Rating []struct{
-			Num int64 `json:"num"`
-			User string `json:"user"`
+		Tasks  struct {
+			       Title string `json:"title"`
+			       Teaser string `json:"teaser"`
+			       Tasks []struct {
+				       Score      float64 `json:"score"`
+				       Topic      string `json:"topic"`
+				       Rivescript string `json:"rivescript"`
+				       Progress   float64 `json:"progress"`
+				       State      string `json:"state"`
+				       Materials  []struct {
+					       Rivescript string `json:"rivescript"`
+					       Url        string `json:"url"`
+				       } `json:"materials"`
+			       } `json:"tasks"`
+		       }`json:"tasks"`
+		Rating []struct {
+			Num   int64 `json:"num"`
+			User  string `json:"user"`
 			Score float64 `json:"score"`
-
 		} `json:"rating"`
 	}{}
 
@@ -84,7 +88,27 @@ var learningMapTmpl = `
 <div class="container-fluid">
     <a href="http://nl-a.ru/"><img src="http://nl-a.ru/wp-content/uploads/2016/08/NLA-title-2.png" alt="" style="margin-top: 20px"></a>
     <h3>Список задач: {{.Tasks.Title}}</h3>
-
+    <div class="alert alert-info">{{.Tasks.Teaser}}</div>
+    <div class="row">
+	<div class="col-md-12">
+	    <div class="panel panel-info" style="margin-top: 20px">
+		<div class="panel-heading">
+		    <h3 class="panel-title">Открытые задания</h3>
+		</div>
+		<div class="panel-body">
+		{{range .Tasks.Tasks}}
+			{{if eq .State "inProcess"}}
+				<pre><b>{{.Rivescript}}</b> {{if .Score}}<br>баллов:{{.Score}}{{end}} {{if .Progress}}<br>пройдено:{{.Progress}}%{{end}}
+				{{if .Materials}}
+					<hr><p>материалы для изучения:</p>{{range .Materials}}<p>{{.Rivescript}}</p>{{end}}
+				{{end}}
+				</pre>
+			{{end}}
+		{{end}}
+		</div>
+	    </div>
+	</div>
+    </div>
 
     <div class="row">
 	<div class="col-md-12">
@@ -96,23 +120,9 @@ var learningMapTmpl = `
 		{{range .Tasks.Tasks}}
 			{{if eq .State "finished"}}
 				<pre><b>{{.Rivescript}}</b> {{if .Score}}<br>баллов:{{.Score}}{{end}} {{if .Progress}}<br>пройдено:{{.Progress}}%{{end}}
-				</pre>
-			{{end}}
-		{{end}}
-		</div>
-	    </div>
-	</div>
-    </div>
-    <div class="row">
-	<div class="col-md-12">
-	    <div class="panel panel-info" style="margin-top: 20px">
-		<div class="panel-heading">
-		    <h3 class="panel-title">Открытые задания</h3>
-		</div>
-		<div class="panel-body">
-		{{range .Tasks.Tasks}}
-			{{if eq .State "inProcess"}}
-				<pre><b>{{.Rivescript}}</b> {{if .Score}}<br>баллов:{{.Score}}{{end}} {{if .Progress}}<br>пройдено:{{.Progress}}%{{end}}
+				{{if .Materials}}
+					<hr><p>материалы для изучения:</p>{{range .Materials}}<p>{{.Rivescript}}</p>{{end}}
+				{{end}}
 				</pre>
 			{{end}}
 		{{end}}
