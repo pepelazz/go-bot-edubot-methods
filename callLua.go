@@ -33,15 +33,6 @@ func callLua(userId int, args []string) (result interface{}, err error) {
 			err = errors.New(fmt.Sprintf("неверный json формат : %s\n проверьте правильность заполнения параметров:\n %s", err, strings.Join(args[1:], ",")))
 			return
 		}
-		// TODO: удалить после 20/06/2017
-		//for _, v := range args {
-		//	if strings.Contains(v, "=") {
-		//		arr := strings.Split(v, "=")
-		//		if len(arr) == 2 {
-		//			params[arr[0]] = arr[1]
-		//		}
-		//	}
-		//}
 	}
 	// два варианта вызова lua функции в зависимости от типа параметров
 	if len(params) > 0 {
@@ -81,6 +72,7 @@ func callDbFunction(functionName string, args []interface{}) (result []byte, err
 		return
 	}
 
+	// не уверен что эта строчка когад либо работала, потому что тут конвертация []interface{} в строку. Но так как результат возвращается через rpc, то в этой ветке логике происходит обработка ошибки, либо null
 	queryRes := resp.Data[0].(string)
 
 	//fmt.Printf("rsp %s\n", resp)

@@ -141,7 +141,7 @@ func sendMsgWithDelay(s *userSession.S, text string, delay time.Duration) {
 		if err != nil {
 			return
 		} else {
-			_, err = s.SetAnswerMsg(text).SendMsg()
+			s.SetAnswerMsg(text).SendMsg(nil)
 		}
 	}
 }
